@@ -15,19 +15,26 @@ const endpoint = `
 }
 `
 
-const data = `
-airflow:
-  url: "http://localhost:8080/health"
-  interval: 5s
-  field: "metadatabase.status"
-  value: "healthy"
-
-airflow-scheduler:
-  url: "http://localhost:8080/health"
-  interval: 10s
-  field: "scheduler.status"
-  value: "healthy"
-`
-
 func TestService(t *testing.T) {
+	metadatabase := make(map[string]string)
+	metadatabase["url"] = "http://localhost:8080/health"
+	metadatabase["interval"] = "5s"
+	metadatabase["field"] = "metadatabase.status"
+	metadatabase["value"] = "healthy"
+	serviceA := NewService("Service A", metadatabase)
+
+	// scheduler := metadatabase
+	// scheduler["field"] = "scheduler.status"
+
+	// serviceB := NewService("Service B", scheduler)
+
+	t.Run("when a service is down", func(t *testing.T) {
+		got := serviceA.IsHealth()
+		want := true
+
+		if got != want {
+			t.Errorf("\nGot: %v\nWant: %v\n", got, want)
+		}
+
+	})
 }

@@ -26,14 +26,8 @@ airflow-scheduler:
 type Services map[string]map[string]string
 
 func main() {
-	var services Services
+	services := parseData()
 	servicesToWatch := make([]*service.Service, 0)
-
-	// parse file
-	err := yaml.Unmarshal([]byte(data), &services)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
 
 	// create a slice of Service
 	for name, values := range services {
@@ -43,4 +37,16 @@ func main() {
 	supervisor := service.NewSupervisor(servicesToWatch)
 	log.Println("Starting process...")
 	supervisor.Start()
+}
+
+func parseData() Services {
+	var services Services
+
+	// parse file
+	err := yaml.Unmarshal([]byte(data), &services)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	return services
 }
