@@ -2,10 +2,7 @@
 package service
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -40,6 +37,8 @@ type Service struct {
 
 	// Interval is the frequency in which the Service must be checked
 	Interval time.Duration
+
+	Client Client
 }
 
 // NewService creates a new *Service
@@ -59,8 +58,9 @@ func NewService(name string, data map[string]string) *Service {
 		URL:      url,
 		Field:    data["field"],
 		Value:    data["value"],
-		IsUp:     true,
+		IsUp:     false,
 		Interval: interval,
+		Client:   &HTTPClient{},
 	}
 }
 
@@ -68,7 +68,7 @@ func NewService(name string, data map[string]string) *Service {
 // to Endpoint (health or status endpoint of Service), parsing its response
 // and comparing what value the field `Field` should have. This value is `Value`.
 func (s *Service) IsHealth() bool {
-	jsonData, err := s.getEndpointData()
+	jsonData, err := s.Client.getEndpointData(s.URL)
 	if err != nil {
 		return false
 	}
@@ -97,29 +97,4 @@ func findHealthStatus(s *Service, field []string, jsonData map[string]interface{
 		return false
 	}
 	return findHealthStatus(s, field[1:], lookupData.(map[string]interface{}))
-}
-func (s *Service) getEndpointData() (map[string]interface{}, error) {
-	// Make HTTP request
-	resp, err := http.Get(s.URL.String())
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	// get response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	// parse response body
-	var data map[string]interface{}
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	return data, nil
 }
