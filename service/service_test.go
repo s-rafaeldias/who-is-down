@@ -41,7 +41,7 @@ func TestService(t *testing.T) {
 		Client:   &MockClient{},
 	}
 
-	t.Run("create a service with defaults value", func(t *testing.T) {
+	t.Run("create a service with default values", func(t *testing.T) {
 
 	})
 
