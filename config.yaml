@@ -1,11 +1,11 @@
 airflow:
-  url: "http://localhost:8080/health"
-  interval: 5s
+  url: "http://srvanalytic01.poupex.com.br:8080/health"
+  interval: 10s
   field: "metadatabase.status"
   value: "healthy"
 
 airflow-scheduler:
-  url: "http://localhost:8080/health"
+  url: "http://srvanalytic01.poupex.com.br:8080/health"
   interval: 10s
   field: "scheduler.status"
   value: "healthy"

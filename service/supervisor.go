@@ -10,20 +10,23 @@ import (
 // services, notifying when a service is down and when it is
 // back up again.
 type Supervisor struct {
-	Services []*Service
+	services []*Service
 }
 
-// NewSupervisor creates a new Supervisor
+// NewSupervisor creates a new Supervisor.
 func NewSupervisor(services []*Service) *Supervisor {
 	return &Supervisor{
-		Services: services,
+		services,
 	}
 }
 
+// Start starts to watching all the services, each one in its
+// own goroutine.
 func (s *Supervisor) Start() {
+	// TODO: look for a more safe way to do this
 	var wg sync.WaitGroup
 
-	for _, service := range s.Services {
+	for _, service := range s.services {
 		wg.Add(1)
 		go checkService(service)
 	}
