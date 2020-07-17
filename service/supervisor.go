@@ -1,9 +1,12 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/s-rafaeldias/who-is-down/notification"
 )
 
 // A Supervisor is responsible for continuous checking a list
@@ -11,12 +14,14 @@ import (
 // back up again.
 type Supervisor struct {
 	services []*Service
+	notifier notification.Notifier
 }
 
 // NewSupervisor creates a new Supervisor.
-func NewSupervisor(services []*Service) *Supervisor {
+func NewSupervisor(services []*Service, notifier notification.Notifier) *Supervisor {
 	return &Supervisor{
 		services,
+		notifier,
 	}
 }
 
@@ -28,18 +33,20 @@ func (s *Supervisor) Start() {
 
 	for _, service := range s.services {
 		wg.Add(1)
-		go checkService(service)
+		go s.checkService(service)
 	}
 
 	wg.Wait()
 }
 
-func checkService(service *Service) {
+func (s *Supervisor) checkService(service *Service) {
 	for {
 		if !service.IsHealth() {
 			log.Printf("Service %q is down\n", service.Name)
 		} else {
 			log.Printf("Service %q IS UP\n", service.Name)
+			msg := fmt.Sprintf("Service %q is down\n", service.Name)
+			s.notifier.Notify(msg)
 		}
 		time.Sleep(service.Interval)
 	}
