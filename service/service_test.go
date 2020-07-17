@@ -1,9 +1,14 @@
 package service
 
-import "testing"
+import (
+	"encoding/json"
+	"net/url"
+	"testing"
+	"time"
+)
 
 // https://airflow.apache.org/docs/stable/howto/check-health.html?highlight=health
-const endpoint = `
+const jsonData = `
 {
   "metadatabase":{
     "status":"healthy"
@@ -16,25 +21,57 @@ const endpoint = `
 `
 
 func TestService(t *testing.T) {
-	metadatabase := make(map[string]string)
-	metadatabase["url"] = "http://localhost:8080/health"
-	metadatabase["interval"] = "5s"
-	metadatabase["field"] = "metadatabase.status"
-	metadatabase["value"] = "healthy"
-	serviceA := NewService("Service A", metadatabase)
+	serviceA := &Service{
+		Name:     "Service A",
+		URL:      &url.URL{},
+		Field:    "metadatabase.status",
+		Value:    "healthy",
+		IsUp:     false,
+		Interval: 5 * time.Second,
+		Client:   &MockClient{},
+	}
 
-	// scheduler := metadatabase
-	// scheduler["field"] = "scheduler.status"
+	serviceB := &Service{
+		Name:     "Service B",
+		URL:      &url.URL{},
+		Field:    "scheduler.status",
+		Value:    "healthy",
+		IsUp:     false,
+		Interval: 5 * time.Second,
+		Client:   &MockClient{},
+	}
 
-	// serviceB := NewService("Service B", scheduler)
+	t.Run("create a service with defaults value", func(t *testing.T) {
 
-	t.Run("when a service is down", func(t *testing.T) {
+	})
+
+	t.Run("when a service is up and running", func(t *testing.T) {
 		got := serviceA.IsHealth()
 		want := true
 
 		if got != want {
 			t.Errorf("\nGot: %v\nWant: %v\n", got, want)
 		}
-
 	})
+
+	t.Run("when a service is down", func(t *testing.T) {
+		got := serviceB.IsHealth()
+		want := false
+
+		if got != want {
+			t.Errorf("\nGot: %v\nWant: %v\n", got, want)
+		}
+	})
+}
+
+type MockClient struct{}
+
+func (m *MockClient) getEndpointData(url *url.URL) (map[string]interface{}, error) {
+	var data map[string]interface{}
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic("JSON data used for test is badly formatted\n")
+	}
+
+	return data, nil
 }
