@@ -1,0 +1,14 @@
+[Unit]
+Description=Service monitor
+
+[Service]
+User=eqana
+Group=eqana
+ExecStart=/bin/sh -c "who-is-down -f $USER/"
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/who_is_down/who-is-down.conf
+
+
+[Install]
+WantedBy=multi-user.target
