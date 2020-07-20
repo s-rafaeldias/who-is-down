@@ -1,4 +1,4 @@
-package notification
+package pkg
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ type Slack struct {
 
 // New creates a new Slack type. By default, it looks up for a environment variable
 // named SLACK_WEBHOOK_URL so it can send a notification properly.
-func New() (*Slack, error) {
+func NewSlackClient() (*Slack, error) {
 	// checks if slack webhook url is set as an environment variable
 	// if not, returns a error.
 	slackEnv, ok := os.LookupEnv("SLACK_WEBHOOK_URL")

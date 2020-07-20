@@ -1,12 +1,11 @@
-package service
+package pkg
 
 import (
 	"fmt"
 	"log"
 	"sync"
 	"time"
-
-	"github.com/s-rafaeldias/who-is-down/notification"
+	// "github.com/s-rafaeldias/who-is-down/notification"
 )
 
 // A Supervisor is responsible for continuous checking a list
@@ -14,11 +13,11 @@ import (
 // back up again.
 type Supervisor struct {
 	services []*Service
-	notifier notification.Notifier
+	notifier Notifier
 }
 
 // NewSupervisor creates a new Supervisor.
-func NewSupervisor(services []*Service, notifier notification.Notifier) *Supervisor {
+func NewSupervisor(services []*Service, notifier Notifier) *Supervisor {
 	return &Supervisor{
 		services,
 		notifier,

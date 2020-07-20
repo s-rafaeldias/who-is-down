@@ -6,8 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/s-rafaeldias/who-is-down/notification"
-	"github.com/s-rafaeldias/who-is-down/service"
+	"github.com/s-rafaeldias/who-is-down/pkg"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,26 +23,26 @@ func New() *Cli {
 
 // Start starts watching all services defined on `configFile`
 func (c *Cli) Start() {
-	flag.StringVar(&c.configFilePath, "configFile", "./config.yaml", "Path to configFile")
+	flag.StringVar(&c.configFilePath, "f", "config.yaml", "Path to config file")
 	flag.Parse()
 
 	// parse file
 	services := c.parseConfigFile()
 
 	// TODO: add option to choose Notifier
-	slack, err := notification.New()
+	slack, err := pkg.NewSlackClient()
 	if err != nil {
 		log.Panicln(err)
 	}
 
 	// create a supervisor and start watching the services
-	supervisor := service.NewSupervisor(services, slack)
+	supervisor := pkg.NewSupervisor(services, slack)
 	supervisor.Start()
 }
 
 // parseConfigFile parses the configFile and return a slice of
 // services to watch.
-func (c *Cli) parseConfigFile() []*service.Service {
+func (c *Cli) parseConfigFile() []*pkg.Service {
 	// open file
 	file, err := os.Open(c.configFilePath)
 	if err != nil {
@@ -65,9 +64,9 @@ func (c *Cli) parseConfigFile() []*service.Service {
 	}
 
 	// create a slice of service.Service
-	servicesToWatch := make([]*service.Service, 0)
+	servicesToWatch := make([]*pkg.Service, 0)
 	for name, values := range servicesFromConfig {
-		servicesToWatch = append(servicesToWatch, service.NewService(name, values))
+		servicesToWatch = append(servicesToWatch, pkg.NewService(name, values))
 	}
 
 	return servicesToWatch
