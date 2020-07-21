@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -22,10 +23,42 @@ func New() *Cli {
 }
 
 // Start starts watching all services defined on `configFile`
-func (c *Cli) Start() {
-	flag.StringVar(&c.configFilePath, "f", "config.yaml", "Path to config file")
-	flag.Parse()
+func (c *Cli) Run() {
+	installCmd := flag.NewFlagSet("install", flag.ExitOnError)
 
+	startCmd := flag.NewFlagSet("start", flag.ExitOnError)
+	configFilePath := startCmd.String("f", "config.yaml", "Path for config file")
+
+	// checks for correct number of args
+	if len(os.Args) < 2 {
+		fmt.Println("Expected a command")
+		os.Exit(1)
+	}
+
+	switch os.Args[1] {
+	case "install":
+		installCmd.Parse(os.Args[2:])
+		c.Install()
+	case "start":
+		startCmd.Parse(os.Args[2:])
+		c.configFilePath = *configFilePath
+		c.Start()
+	default:
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+}
+
+// Install configure all scripts needed for running ``who-is-down`` as a systemctl service.
+func (c *Cli) Install() {
+	// default paths
+	// create folders if needed
+	// ask
+}
+
+// Start initialize the supervisor
+func (c *Cli) Start() {
 	// parse file
 	services := c.parseConfigFile()
 

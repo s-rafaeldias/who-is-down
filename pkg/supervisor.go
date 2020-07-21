@@ -5,7 +5,6 @@ import (
 	"log"
 	"sync"
 	"time"
-	// "github.com/s-rafaeldias/who-is-down/notification"
 )
 
 // A Supervisor is responsible for continuous checking a list
@@ -42,10 +41,10 @@ func (s *Supervisor) checkService(service *Service) {
 	for {
 		if !service.IsHealth() {
 			log.Printf("Service %q is down\n", service.Name)
-		} else {
-			log.Printf("Service %q IS UP\n", service.Name)
 			msg := fmt.Sprintf("Service %q is down\n", service.Name)
 			s.notifier.Notify(msg)
+		} else {
+			log.Printf("Service %q IS UP\n", service.Name)
 		}
 		time.Sleep(service.Interval)
 	}

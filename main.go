@@ -21,5 +21,5 @@ airflow-scheduler:
 
 func main() {
 	cli := cmd.New()
-	cli.Start()
+	cli.Run()
 }
