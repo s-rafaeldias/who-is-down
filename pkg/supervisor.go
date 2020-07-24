@@ -39,7 +39,8 @@ func (s *Supervisor) Start() {
 
 func (s *Supervisor) checkService(service *Service) {
 	for {
-		if !service.IsHealth() {
+		err := service.IsHealth()
+		if err != nil {
 			log.Printf("Service %q is down\n", service.Name)
 			msg := fmt.Sprintf("Service %q is down\n", service.Name)
 			s.notifier.Notify(msg)
