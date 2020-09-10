@@ -1,4 +1,4 @@
-package service
+package pkg
 
 import (
 	"encoding/json"
@@ -41,11 +41,7 @@ func TestService(t *testing.T) {
 		Client:   &MockClient{},
 	}
 
-	t.Run("create a service with defaults value", func(t *testing.T) {
-
-	})
-
-	t.Run("when a service is up and running", func(t *testing.T) {
+	t.Run("returns true when a service is up and running", func(t *testing.T) {
 		got := serviceA.IsHealth()
 		want := true
 
@@ -54,7 +50,7 @@ func TestService(t *testing.T) {
 		}
 	})
 
-	t.Run("when a service is down", func(t *testing.T) {
+	t.Run("returns false when a service is down", func(t *testing.T) {
 		got := serviceB.IsHealth()
 		want := false
 

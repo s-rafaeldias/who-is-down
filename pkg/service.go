@@ -1,5 +1,5 @@
 // Service
-package service
+package pkg
 
 import (
 	"log"

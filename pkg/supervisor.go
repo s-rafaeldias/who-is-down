@@ -1,6 +1,7 @@
-package service
+package pkg
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -11,12 +12,14 @@ import (
 // back up again.
 type Supervisor struct {
 	services []*Service
+	notifier Notifier
 }
 
 // NewSupervisor creates a new Supervisor.
-func NewSupervisor(services []*Service) *Supervisor {
+func NewSupervisor(services []*Service, notifier Notifier) *Supervisor {
 	return &Supervisor{
 		services,
+		notifier,
 	}
 }
 
@@ -28,16 +31,18 @@ func (s *Supervisor) Start() {
 
 	for _, service := range s.services {
 		wg.Add(1)
-		go checkService(service)
+		go s.checkService(service)
 	}
 
 	wg.Wait()
 }
 
-func checkService(service *Service) {
+func (s *Supervisor) checkService(service *Service) {
 	for {
 		if !service.IsHealth() {
 			log.Printf("Service %q is down\n", service.Name)
+			msg := fmt.Sprintf("Service %q is down\n", service.Name)
+			s.notifier.Notify(msg)
 		} else {
 			log.Printf("Service %q IS UP\n", service.Name)
 		}
