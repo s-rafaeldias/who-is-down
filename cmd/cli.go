@@ -99,7 +99,8 @@ func (c *Cli) parseConfigFile() []*pkg.Service {
 	// create a slice of service.Service
 	servicesToWatch := make([]*pkg.Service, 0)
 	for name, values := range servicesFromConfig {
-		servicesToWatch = append(servicesToWatch, pkg.NewService(name, values))
+		s, _ := pkg.NewService(name, values)
+		servicesToWatch = append(servicesToWatch, s)
 	}
 
 	return servicesToWatch

@@ -2,14 +2,15 @@ package pkg
 
 import (
 	"encoding/json"
+	"errors"
 	"net/url"
 	"testing"
-	"time"
 )
 
 // https://airflow.apache.org/docs/stable/howto/check-health.html?highlight=health
 const jsonData = `
 {
+  "status": "healthy",
   "metadatabase":{
     "status":"healthy"
   },
@@ -21,48 +22,106 @@ const jsonData = `
 `
 
 func TestService(t *testing.T) {
-	serviceA := &Service{
-		Name:     "Service A",
-		URL:      &url.URL{},
-		Field:    "metadatabase.status",
-		Value:    "healthy",
-		IsUp:     false,
-		Interval: 5 * time.Second,
-		Client:   &MockClient{},
-	}
+	t.Run("create service with sane defaults", func(t *testing.T) {
+		_, err := NewService("teste", mockServiceData())
 
-	serviceB := &Service{
-		Name:     "Service B",
-		URL:      &url.URL{},
-		Field:    "scheduler.status",
-		Value:    "healthy",
-		IsUp:     false,
-		Interval: 5 * time.Second,
-		Client:   &MockClient{},
-	}
-
-	t.Run("returns true when a service is up and running", func(t *testing.T) {
-		got := serviceA.IsHealth()
-		want := true
-
-		if got != want {
-			t.Errorf("\nGot: %v\nWant: %v\n", got, want)
+		if err != nil {
+			t.Errorf("should have created without an error")
 		}
 	})
 
-	t.Run("returns false when a service is down", func(t *testing.T) {
-		got := serviceB.IsHealth()
-		want := false
+	t.Run("gives error if cannot parse URL", func(t *testing.T) {
+		data := mockServiceData()
+		data["url"] = "test 123"
+		_, err := NewService("teste", data)
 
-		if got != want {
-			t.Errorf("\nGot: %v\nWant: %v\n", got, want)
+		if err == nil {
+			t.Errorf("should have given an error")
+		}
+	})
+
+	t.Run("gives error if cannot parse interval", func(t *testing.T) {
+		data := mockServiceData()
+		data["interval"] = "abc"
+		_, err := NewService("teste", data)
+
+		if err == nil {
+			t.Errorf("should have given an error")
 		}
 	})
 }
 
-type MockClient struct{}
+func TestHealthCheck(t *testing.T) {
+	t.Run("gives error if client cannot be reached", func(t *testing.T) {
+		service, _ := NewService("test", mockServiceData())
+		service.client = &MockClient{returnError: true}
+
+		err := service.IsHealth()
+
+		if err == nil {
+			t.Errorf("should have given an error")
+		}
+	})
+
+	t.Run("not nested field", func(t *testing.T) {
+		service, _ := NewService("test", mockServiceData())
+		service.client = &MockClient{returnError: false}
+
+		err := service.IsHealth()
+
+		if err != nil {
+			t.Errorf("should not have given an error")
+		}
+	})
+
+	t.Run("nested field", func(t *testing.T) {
+		data := mockServiceData()
+		data["field"] = "metadatabase.status"
+
+		service, _ := NewService("test", data)
+		service.client = &MockClient{returnError: false}
+
+		err := service.IsHealth()
+
+		if err != nil {
+			t.Errorf("should not have given an error")
+		}
+
+	})
+
+	t.Run("value does not match", func(t *testing.T) {
+		data := mockServiceData()
+		data["field"] = "scheduler.status"
+
+		service, _ := NewService("test", data)
+		service.client = &MockClient{returnError: false}
+
+		err := service.IsHealth()
+
+		if err == nil {
+			t.Errorf("should have given an error")
+		}
+	})
+}
+
+func mockServiceData() map[string]string {
+	data := make(map[string]string)
+	data["url"] = "https://localhost:8080/status"
+	data["field"] = "status"
+	data["value"] = "healthy"
+	data["interval"] = "10s"
+	return data
+}
+
+type MockClient struct {
+	returnError bool
+}
 
 func (m *MockClient) getEndpointData(url *url.URL) (map[string]interface{}, error) {
+	if m.returnError {
+		return nil, errors.New("mock error")
+	}
+
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(jsonData), &data)
 	if err != nil {

@@ -31,21 +31,25 @@ func (s *Supervisor) Start() {
 
 	for _, service := range s.services {
 		wg.Add(1)
-		go s.checkService(service)
+		go func(service *Service) {
+			for {
+				checkService(s, service)
+				time.Sleep(service.Interval)
+			}
+		}(service)
 	}
 
 	wg.Wait()
 }
 
-func (s *Supervisor) checkService(service *Service) {
-	for {
-		if !service.IsHealth() {
-			log.Printf("Service %q is down\n", service.Name)
-			msg := fmt.Sprintf("Service %q is down\n", service.Name)
-			s.notifier.Notify(msg)
-		} else {
-			log.Printf("Service %q IS UP\n", service.Name)
-		}
-		time.Sleep(service.Interval)
+// TODO: how can I test this?
+func checkService(s *Supervisor, service *Service) {
+	err := service.IsHealth()
+	if err != nil {
+		log.Printf("Service %q is down\n", service.Name)
+		msg := fmt.Sprintf("Service %q is down\n", service.Name)
+		s.notifier.Notify(msg)
+	} else {
+		log.Printf("Service %q IS UP\n", service.Name)
 	}
 }

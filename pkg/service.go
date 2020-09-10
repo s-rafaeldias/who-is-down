@@ -2,11 +2,15 @@
 package pkg
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"strings"
 	"time"
 )
+
+var ErrCouldNotReachEndpoint = errors.New("could not reach endpoint")
 
 // Service is a service to be monitored.
 type Service struct {
@@ -14,7 +18,7 @@ type Service struct {
 	Name string
 
 	// URL is the URI for health/status endpoint of the service.
-	URL *url.URL
+	url *url.URL
 
 	// Field represents which field inside a JSON is located the value `Value`
 	// that indicates if a service is healthy
@@ -25,10 +29,10 @@ type Service struct {
 	// An example is:
 	// { "fieldA": { "fieldB": "health" } }
 	// The Field value would be `fieldA.fieldB`.
-	Field string
+	field string
 
 	// Value represent which value represents that a service is health.
-	Value string
+	value string
 
 	// IsUp is a flag for the health status of a service.
 	//
@@ -38,63 +42,61 @@ type Service struct {
 	// Interval is the frequency in which the Service must be checked
 	Interval time.Duration
 
-	Client Client
+	client Client
 }
 
 // NewService creates a new *Service
-func NewService(name string, data map[string]string) *Service {
-	url, err := url.Parse(data["url"])
+func NewService(name string, data map[string]string) (*Service, error) {
+	url, err := url.ParseRequestURI(data["url"])
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return nil, err
 	}
 
 	interval, err := time.ParseDuration(data["interval"])
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return nil, err
 	}
 
 	return &Service{
 		Name:     name,
-		URL:      url,
-		Field:    data["field"],
-		Value:    data["value"],
+		url:      url,
+		field:    data["field"],
+		value:    data["value"],
 		IsUp:     false,
 		Interval: interval,
-		Client:   &HTTPClient{},
-	}
+		client:   &HTTPClient{},
+	}, nil
 }
 
 // IsHealth checks if a service is up and running by making a GET request
 // to Endpoint (health or status endpoint of Service), parsing its response
 // and comparing what value the field `Field` should have. This value is `Value`.
-func (s *Service) IsHealth() bool {
-	jsonData, err := s.Client.getEndpointData(s.URL)
+func (s *Service) IsHealth() (reason error) {
+	jsonData, err := s.client.getEndpointData(s.url)
 	if err != nil {
-		return false
+		return fmt.Errorf("The service %s is down: %w", s.Name, err)
 	}
 
-	fields := strings.Split(s.Field, ".")
-	status := findHealthStatus(s, fields, jsonData)
+	ok := findHealthStatus(s.field, s.value, jsonData)
+	if ok {
+		return nil
+	}
 
-	return status
+	return fmt.Errorf("field did not match healthy value defined")
 }
 
 // FindHealthStatus checks if a given *Service is up and running or if it is down.
-func findHealthStatus(s *Service, field []string, jsonData map[string]interface{}) bool {
-	lookupField := field[0]
-	// if there is only one element on `field`, it should check directly its value
-	// with s.Value.
+func findHealthStatus(field, value string, jsonData map[string]interface{}) bool {
+	nestedFields := strings.Split(field, ".")
+	return recurFindHealthStatus(nestedFields, value, jsonData)
+}
+
+func recurFindHealthStatus(field []string, value string, jsonData map[string]interface{}) bool {
 	if len(field) == 1 {
-		if jsonData[lookupField] == s.Value {
-			return true
-		}
-		return false
+		return value == jsonData[field[0]]
 	}
 
-	lookupData, ok := jsonData[lookupField]
-	if !ok {
-		log.Printf("field %q is not present\n", s.Field)
-		return false
-	}
-	return findHealthStatus(s, field[1:], lookupData.(map[string]interface{}))
+	return recurFindHealthStatus(field[1:], value, jsonData[field[0]].(map[string]interface{}))
 }
